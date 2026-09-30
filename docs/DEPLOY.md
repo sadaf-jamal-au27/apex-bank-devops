@@ -1,6 +1,8 @@
 # Deploy to private GKE
 
-The landing zone uses a **private control plane**. GitHub-hosted runners cannot call the master API unless one of these is true:
+The landing zone uses a **private control plane** (API often `172.16.x`). GitHub-hosted runners cannot call the master API unless one of these is true:
+
+If CI fails with `dial tcp 172.16.x:443: i/o timeout` on `kubectl apply`, the runner has kubeconfig but **no network path** to the private endpoint — expected until one of the options below is in place.
 
 | Option | When to use |
 |--------|-------------|

@@ -36,7 +36,8 @@ gcloud container clusters get-credentials "$CLUSTER" --region "$REGION" --projec
 ## CI
 
 - **PR → develop/main:** `deploy-plan.yml` — `helm lint` + `helm template`
-- **Push develop / workflow_dispatch:** `deploy-dev.yml` — `helm upgrade` (needs cluster API access; see [docs/DEPLOY.md](docs/DEPLOY.md))
+- **Push develop:** `deploy-dev.yml` prints a skip note (private cluster; no auto-deploy from GitHub-hosted runners)
+- **workflow_dispatch:** `deploy-dev.yml` — `helm upgrade` when API is reachable (Connect Gateway / VPC runner; see [docs/DEPLOY.md](docs/DEPLOY.md))
 
 Add **`apex-bank-devops`** to `github_repos` in infra `shared.tfvars` and re-apply `01-iam` so WIF trusts this repo.
 
