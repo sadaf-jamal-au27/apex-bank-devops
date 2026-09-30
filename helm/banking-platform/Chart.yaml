@@ -4,3 +4,10 @@ description: Apex Bank microservices on GKE (dev)
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
+keywords:
+  - banking
+  - gke
+  - apex-bank
+home: https://github.com/sadaf-jamal-au27/apex-bank-devops
+sources:
+  - https://github.com/sadaf-jamal-au27/apex-bank-app
