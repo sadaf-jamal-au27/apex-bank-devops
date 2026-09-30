@@ -1,0 +1,79 @@
+name: Banking deploy dev
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: GAR image tag (e.g. develop-latest or git SHA)
+        required: true
+        default: develop-latest
+      use_connect_gateway:
+        description: Use GKE Connect Gateway (required for private endpoint from GitHub-hosted runners)
+        type: boolean
+        default: false
+
+concurrency:
+  group: banking-deploy-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_ID: ai-rag-agent-project
+  REGION: asia-south1
+  CLUSTER: banking-dev
+  NAMESPACE: banking-dev
+
+jobs:
+  deploy:
+    name: Helm upgrade (GKE dev)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag || 'develop-latest' }}
+      USE_CONNECT_GATEWAY: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_connect_gateway || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_CI_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.CLUSTER }}
+          location: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          use_connect_gateway: ${{ env.USE_CONNECT_GATEWAY == 'true' }}
+
+      - name: Sync DB secret from Secret Manager
+        run: |
+          chmod +x scripts/sync-db-secret.sh
+          ./scripts/sync-db-secret.sh dev
+
+      - name: helm upgrade
+        run: |
+          helm lint helm/banking-platform
+          helm upgrade --install banking-platform helm/banking-platform \
+            --namespace "${NAMESPACE}" \
+            --create-namespace \
+            --set global.imageTag="${IMAGE_TAG}" \
+            --wait --timeout 15m
+
+      - name: rollout status
+        run: kubectl get deploy,svc -n "${NAMESPACE}"

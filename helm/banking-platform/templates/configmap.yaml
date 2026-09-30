@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: banking-platform-config
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+data:
+  NODE_ENV: production
+  BANKING_ENV: {{ .Values.global.env | quote }}
+  DB_HOST: {{ .Values.global.database.host | quote }}
+  DB_PORT: {{ .Values.global.database.port | quote }}
+  DB_NAME: {{ .Values.global.database.name | quote }}
+  DB_USER: {{ .Values.global.database.user | quote }}
+  DB_SSL: "true"

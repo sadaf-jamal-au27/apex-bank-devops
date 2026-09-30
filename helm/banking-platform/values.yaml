@@ -1,0 +1,49 @@
+global:
+  projectId: ai-rag-agent-project
+  region: asia-south1
+  env: dev
+  imageRegistry: asia-south1-docker.pkg.dev/ai-rag-agent-project/banking
+  imageTag: develop-latest
+  imagePullPolicy: IfNotPresent
+
+  workloadIdentity:
+    gcpServiceAccount: banking-workload-dev@ai-rag-agent-project.iam.gserviceaccount.com
+
+  database:
+    host: postgres.sql.internal
+    port: "5432"
+    name: banking
+    user: banking_app
+    existingSecret: banking-db-credentials
+    passwordKey: password
+
+namespace:
+  create: true
+  name: banking-dev
+
+serviceAccount:
+  create: true
+  name: banking-app
+
+services:
+  - name: identity-service
+    port: 3001
+    replicas: 1
+  - name: account-service
+    port: 3002
+    replicas: 1
+  - name: ledger-service
+    port: 3003
+    replicas: 1
+  - name: transfer-service
+    port: 3004
+    replicas: 1
+  - name: payment-service
+    port: 3005
+    replicas: 1
+  - name: card-service
+    port: 3006
+    replicas: 1
+  - name: bff-api-service
+    port: 8080
+    replicas: 1

@@ -1,0 +1,32 @@
+name: Banking deploy plan
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  helm:
+    name: Helm lint & template
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: helm lint
+        run: helm lint helm/banking-platform
+
+      - name: helm template
+        run: |
+          helm template banking-platform helm/banking-platform \
+            --namespace banking-dev \
+            --set global.imageTag=ci-${{ github.sha }} \
+            > /tmp/rendered.yaml
+          wc -l /tmp/rendered.yaml
