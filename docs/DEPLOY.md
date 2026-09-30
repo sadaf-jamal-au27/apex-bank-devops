@@ -14,6 +14,14 @@ The landing zone uses a **private control plane**. GitHub-hosted runners cannot 
 2. **DB K8s secret** — `scripts/sync-db-secret.sh` reads GSM `banking-dev-sql-banking-app`
 3. **Image tag** — default `develop-latest` from app CI push to GAR
 
+Verify images after **apex-bank-app** CI push to `develop`:
+
+```bash
+gcloud artifacts docker images list \
+  asia-south1-docker.pkg.dev/ai-rag-agent-project/banking \
+  --include-tags --filter='tags:develop-latest'
+```
+
 ## Infra handoff (terraform outputs)
 
 | Output (stack) | Helm / deploy |
