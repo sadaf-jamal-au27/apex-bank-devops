@@ -28,8 +28,11 @@ env:
   NAMESPACE: banking-dev
 
 jobs:
+  # Private GKE (172.16.x) is not reachable from GitHub-hosted runners unless Connect
+  # Gateway or a VPC runner is configured. Avoid a red develop pipeline on every merge.
   deploy:
     name: Helm upgrade (GKE dev)
+    if: github.event_name == 'workflow_dispatch' || vars.GKE_CI_DEPLOY == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: dev
@@ -61,6 +64,15 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
           use_connect_gateway: ${{ env.USE_CONNECT_GATEWAY == 'true' }}
 
+      - name: Verify Kubernetes API reachability
+        run: |
+          if ! kubectl get ns --request-timeout=20s >/dev/null 2>&1; then
+            echo "::error::Cannot reach the GKE API from this runner (private control plane)."
+            echo "Use workflow_dispatch with use_connect_gateway=true after Connect Gateway is enabled,"
+            echo "deploy from a laptop (docs/DEPLOY.md), or use a self-hosted runner in the VPC."
+            exit 1
+          fi
+
       - name: Sync DB secret from Secret Manager
         run: |
           chmod +x scripts/sync-db-secret.sh
@@ -77,3 +89,14 @@ jobs:
 
       - name: rollout status
         run: kubectl get deploy,svc -n "${NAMESPACE}"
+
+  develop-push-note:
+    name: Skip auto-deploy (private cluster)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Develop merge recorded. Auto-deploy from GitHub-hosted runners is disabled for private GKE."
+          echo "Deploy manually: Actions → Banking deploy dev → Run workflow (Connect Gateway),"
+          echo "or locally: ./scripts/deploy-dev.sh dev develop-latest (see docs/DEPLOY.md)."
+          echo "To re-enable CI deploy after VPC runner or Connect Gateway: set repo variable GKE_CI_DEPLOY=true."
