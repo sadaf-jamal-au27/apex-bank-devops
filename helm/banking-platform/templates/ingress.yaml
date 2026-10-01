@@ -1,0 +1,78 @@
+{{- if and .Values.ingress.enabled .Values.customerWeb.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "banking-platform.fullname" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/ingress.class: gce
+    {{- if and (or (include "banking-platform.publicHostname" .) (include "banking-platform.publicAdminHostname" .)) .Values.ingress.managedCertificate }}
+    networking.gke.io/managed-certificates: {{ include "banking-platform.fullname" . }}-cert
+    {{- end }}
+    {{- if .Values.ingress.staticIpName }}
+    kubernetes.io/ingress.global-static-ip-name: {{ .Values.ingress.staticIpName | quote }}
+    {{- end }}
+    {{- if and .Values.ingress.managedCertificate .Values.ingress.redirectToHttps (or (include "banking-platform.publicHostname" .) (include "banking-platform.publicAdminHostname" .)) }}
+    networking.gke.io/v1beta1.FrontendConfig: {{ include "banking-platform.fullname" . }}-frontend
+    {{- end }}
+spec:
+  ingressClassName: gce
+  defaultBackend:
+    service:
+      name: {{ .Values.customerWeb.name }}
+      port:
+        number: {{ .Values.customerWeb.port }}
+  rules:
+    {{- if include "banking-platform.publicHostname" . }}
+    - host: {{ include "banking-platform.publicHostname" . | quote }}
+      http:
+        paths:
+          {{- include "banking-platform.ingressPaths" . | nindent 10 }}
+    {{- end }}
+    {{- if include "banking-platform.publicAdminHostname" . }}
+    - host: {{ include "banking-platform.publicAdminHostname" . | quote }}
+      http:
+        paths:
+          {{- include "banking-platform.ingressPaths" . | nindent 10 }}
+    {{- end }}
+    {{- if and (not (include "banking-platform.publicHostname" .)) (not (include "banking-platform.publicAdminHostname" .)) }}
+    - http:
+        paths:
+          {{- include "banking-platform.ingressPaths" . | nindent 10 }}
+    {{- end }}
+{{- if and (or (include "banking-platform.publicHostname" .) (include "banking-platform.publicAdminHostname" .)) .Values.ingress.managedCertificate }}
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: {{ include "banking-platform.fullname" . }}-cert
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+spec:
+  domains:
+    {{- if include "banking-platform.publicHostname" . }}
+    - {{ include "banking-platform.publicHostname" . | quote }}
+    {{- end }}
+    {{- if include "banking-platform.publicAdminHostname" . }}
+    - {{ include "banking-platform.publicAdminHostname" . | quote }}
+    {{- end }}
+{{- if and .Values.ingress.managedCertificate .Values.ingress.redirectToHttps (or (include "banking-platform.publicHostname" .) (include "banking-platform.publicAdminHostname" .)) }}
+---
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: {{ include "banking-platform.fullname" . }}-frontend
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: MOVED_PERMANENTLY_DEFAULT
+{{- end }}
+{{- end }}
+{{- end }}

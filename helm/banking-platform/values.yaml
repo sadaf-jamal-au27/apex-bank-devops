@@ -16,6 +16,9 @@ global:
     user: banking_app
     existingSecret: banking-db-credentials
     passwordKey: password
+    # Cloud SQL private IP: encrypt in transit; set sslRejectUnauthorized false until server CA is mounted.
+    ssl: true
+    sslRejectUnauthorized: true
 
 namespace:
   create: true
@@ -47,3 +50,33 @@ services:
   - name: bff-api-service
     port: 8080
     replicas: 1
+    public: true
+    healthPath: /health/live
+
+customerWeb:
+  enabled: true
+  name: customer-web
+  port: 80
+  replicas: 1
+  # Same-origin /v1 when traffic hits customer-web (e.g. LB default backend on raw IP).
+  proxyApiToBff: true
+
+# Public edge — production path: Gateway API + cert map (apex-bank-infra Terraform).
+# Legacy GCE Ingress (ManagedCertificate) — disable when gateway.enabled.
+gateway:
+  enabled: false
+  name: banking-external-gateway
+  className: gke-l7-global-external-managed
+  certMap: banking-cert-map
+  staticIpName: ""
+  hostname: ""
+  adminHostname: ""
+  apiPrefix: /api
+  apiRewritePrefix: /v1
+
+ingress:
+  enabled: false
+  host: ""
+  staticIpName: ""
+  managedCertificate: true
+  redirectToHttps: true

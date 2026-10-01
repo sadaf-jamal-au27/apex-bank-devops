@@ -1,0 +1,77 @@
+{{- if and .Values.gateway.enabled .Values.customerWeb.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.gateway.name }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+  annotations:
+    networking.gke.io/certmap: {{ .Values.gateway.certMap | quote }}
+    {{- if .Values.gateway.staticIpName }}
+    networking.gke.io/global-static-ip-name: {{ .Values.gateway.staticIpName | quote }}
+    {{- end }}
+spec:
+  gatewayClassName: {{ .Values.gateway.className }}
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: {{ include "banking-platform.publicHostname" . | quote }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https-admin
+      protocol: HTTPS
+      port: 443
+      hostname: {{ include "banking-platform.publicAdminHostname" . | quote }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "banking-platform.fullname" . }}-shop
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.gateway.name }}
+      sectionName: https
+  hostnames:
+    - {{ include "banking-platform.publicHostname" . | quote }}
+  rules:
+    {{- include "banking-platform.gatewayBffRules" . | nindent 4 }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ .Values.customerWeb.name }}
+          port: {{ .Values.customerWeb.port }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "banking-platform.fullname" . }}-admin
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.gateway.name }}
+      sectionName: https-admin
+  hostnames:
+    - {{ include "banking-platform.publicAdminHostname" . | quote }}
+  rules:
+    {{- include "banking-platform.gatewayBffRules" . | nindent 4 }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ .Values.customerWeb.name }}
+          port: {{ .Values.customerWeb.port }}
+{{- end }}

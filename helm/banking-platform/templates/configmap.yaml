@@ -12,4 +12,11 @@ data:
   DB_PORT: {{ .Values.global.database.port | quote }}
   DB_NAME: {{ .Values.global.database.name | quote }}
   DB_USER: {{ .Values.global.database.user | quote }}
-  DB_SSL: "true"
+  DB_SSL: {{ ternary "true" "false" .Values.global.database.ssl | quote }}
+  DB_SSL_REJECT_UNAUTHORIZED: {{ ternary "true" "false" .Values.global.database.sslRejectUnauthorized | quote }}
+  IDENTITY_URL: "http://identity-service:3001"
+  ACCOUNT_URL: "http://account-service:3002"
+  LEDGER_URL: "http://ledger-service:3003"
+  TRANSFER_URL: "http://transfer-service:3004"
+  PAYMENT_URL: "http://payment-service:3005"
+  CARD_URL: "http://card-service:3006"
