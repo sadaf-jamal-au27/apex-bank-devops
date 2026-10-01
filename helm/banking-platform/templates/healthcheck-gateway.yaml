@@ -1,0 +1,49 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: bff-api-service
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+spec:
+  default:
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+    config:
+      type: HTTP
+      httpHealthCheck:
+        portSpecification: USE_FIXED_PORT
+        port: {{ include "banking-platform.bffPort" . }}
+        requestPath: /health/live
+  targetRef:
+    group: ""
+    kind: Service
+    name: bff-api-service
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: {{ .Values.customerWeb.name }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+spec:
+  default:
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+    config:
+      type: HTTP
+      httpHealthCheck:
+        portSpecification: USE_FIXED_PORT
+        port: {{ .Values.customerWeb.port }}
+        requestPath: /
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ .Values.customerWeb.name }}
+{{- end }}

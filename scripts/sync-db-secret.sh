@@ -13,7 +13,10 @@ command -v kubectl >/dev/null
 
 PW="$(gcloud secrets versions access latest --secret="${GSM_SECRET}" --project="${PROJECT}")"
 
-kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
+  echo "Namespace ${NAMESPACE} does not exist. Run helm upgrade first (deploy-dev.sh)." >&2
+  exit 1
+fi
 
 kubectl create secret generic "${SECRET_NAME}" \
   --namespace="${NAMESPACE}" \

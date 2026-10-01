@@ -1,0 +1,28 @@
+{{- if .Values.ingress.enabled }}
+{{- range .Values.services }}
+{{- if .public }}
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" $ | nindent 4 }}
+spec:
+  {{- include "banking-platform.backendConfigSpec" (dict "root" $ "port" .port "path" (default "/" .healthPath)) | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- if .Values.customerWeb.enabled }}
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ .Values.customerWeb.name }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "banking-platform.labels" . | nindent 4 }}
+spec:
+  {{- include "banking-platform.backendConfigSpec" (dict "root" . "port" .Values.customerWeb.port "path" "/") | nindent 2 }}
+{{- end }}
+{{- end }}

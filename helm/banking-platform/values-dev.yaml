@@ -1,0 +1,24 @@
+# Banking dev (prod-equivalent edge): Gateway API + Terraform cert map / static IP.
+global:
+  env: dev
+  database:
+    ssl: true
+    sslRejectUnauthorized: false
+
+gateway:
+  enabled: true
+  name: banking-external-gateway
+  className: gke-l7-global-external-managed
+  certMap: banking-cert-map
+  staticIpName: banking-dev-portal-ip
+  hostname: dev-banking.beyondthecloud.in
+  adminHostname: dev-banking-admin.beyondthecloud.in
+  apiPrefix: /api
+  apiRewritePrefix: /v1
+
+ingress:
+  enabled: false
+
+customerWeb:
+  enabled: true
+  proxyApiToBff: false
